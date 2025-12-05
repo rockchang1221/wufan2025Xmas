@@ -2,551 +2,275 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幸運刮刮樂 - 電子兌換系統</title>
-    <!-- 引入 Tailwind CSS 進行快速排版 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>聖誕幸運刮刮樂</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        // ============================================================
+        // 【老師請注意】請將 GAS Web App URL 貼在下方
+        // ============================================================
+        const TEACHER_GAS_URL = ""; 
+        // ============================================================
+    </script>
+
     <style>
-        /* 自定義刮刮卡樣式 */
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: radial-gradient(circle at center, #8b0000 0%, #3f0000 100%);
+            overflow-x: hidden;
+            touch-action: manipulation;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 手機版雪花 (數量稍微減少避免卡頓) */
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            color: #fff;
+            opacity: 0.8;
+            font-size: 1.2em;
+            user-select: none;
+            z-index: 0;
+            animation: fall 8s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes fall { to { transform: translateY(110vh); } }
+        .snowflake:nth-child(2n) { animation-duration: 7s; left: 20%; }
+        .snowflake:nth-child(3n) { animation-duration: 9s; left: 80%; }
+
+        /* 手機版卡片容器 */
+        .mobile-card {
+            width: 90%;
+            max-width: 400px; /* 限制最大寬度適應手機 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 刮刮卡區域 - 強制正方形或適合手機的比例 */
         .scratch-container {
             position: relative;
-            width: 300px;
-            height: 150px;
+            width: 100%;
+            aspect-ratio: 1/1; /* 手機上方形比較好刮 */
             margin: 0 auto;
-            border-radius: 10px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 4px solid #d4af37;
             user-select: none;
         }
         .prize-layer {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%);
+            inset: 0;
+            background: radial-gradient(circle, #fff 0%, #f0fdf4 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1;
+            padding: 10px;
         }
         canvas {
             position: absolute;
-            top: 0;
-            left: 0;
+            inset: 0;
             z-index: 2;
-            cursor: pointer;
-            touch-action: none; /* 防止手機滑動頁面 */
+            touch-action: none;
+            width: 100%;
+            height: 100%;
         }
-        .fade-out {
-            opacity: 0;
-            transition: opacity 1s ease-out;
-            pointer-events: none;
-        }
-        /* 隱藏/顯示頁面切換 */
-        .page-section {
-            display: none;
-        }
-        .page-section.active {
+
+        .input-group label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 4px;
             display: block;
-            animation: fadeIn 0.3s ease-in-out;
+            font-weight: bold;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .input-group input {
+            width: 100%;
+            padding: 16px; /* 加大觸控區 */
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            font-size: 1.2rem;
+            text-align: center;
+            font-weight: bold;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .input-group input:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+<body>
+    <!-- 雪花裝飾 -->
+    <div class="snowflake" style="left:10%">❄</div>
+    <div class="snowflake" style="left:30%">❅</div>
+    <div class="snowflake" style="left:70%">❆</div>
+    <div class="snowflake" style="left:90%">❄</div>
 
-    <!-- 頂部導航 (模擬 APP header) -->
-    <nav class="bg-white shadow-sm p-4 sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2 text-red-600 font-black text-xl cursor-pointer" onclick="app.showPage('game')">
-                <i data-lucide="gift"></i> 幸運刮刮樂
-            </div>
-            <button onclick="app.showAdminLogin()" class="text-gray-400 hover:text-gray-600 text-sm flex items-center gap-1">
-                <i data-lucide="settings" class="w-4 h-4"></i> 後台
-            </button>
-        </div>
-    </nav>
-
-    <div class="max-w-4xl mx-auto p-4">
-
-        <!-- ======================= 頁面 1: 刮刮卡遊戲 ======================= -->
-        <div id="page-game" class="page-section active">
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 max-w-md mx-auto mt-8">
-                <div class="bg-red-600 p-6 text-center text-white">
-                    <h1 class="text-2xl font-bold">輸入序號，立即開獎</h1>
-                    <p class="text-red-100 text-sm mt-2">每個序號僅限兌換一次</p>
-                </div>
-
-                <div class="p-6 space-y-6">
-                    <!-- 步驟 1: 輸入區域 -->
-                    <div id="step-input">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">兌換序號</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="input-code" placeholder="例如: VIP888" 
-                                class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none uppercase">
-                            <button onclick="game.verifyCode()" 
-                                class="bg-red-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-red-700 active:scale-95 transition-all">
-                                驗證
-                            </button>
-                        </div>
-                        <p id="msg-error" class="text-red-500 text-sm mt-2 hidden flex items-center gap-1">
-                            <i data-lucide="alert-circle" class="w-4 h-4"></i> <span>錯誤訊息</span>
-                        </p>
-                        
-                        <!-- 測試提示 -->
-                        <div class="mt-4 p-3 bg-blue-50 rounded text-xs text-blue-600">
-                            <p class="font-bold">測試用可用序號：</p>
-                            <div class="flex gap-2 mt-1 flex-wrap">
-                                <span class="bg-white px-2 py-1 rounded border cursor-pointer" onclick="document.getElementById('input-code').value='VIP888'">VIP888</span>
-                                <span class="bg-white px-2 py-1 rounded border cursor-pointer" onclick="document.getElementById('input-code').value='TEST001'">TEST001</span>
-                                <span class="bg-white px-2 py-1 rounded border cursor-pointer" onclick="document.getElementById('input-code').value='LUCKY2024'">LUCKY2024</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 步驟 2: 刮刮樂區域 -->
-                    <div id="step-scratch" class="hidden text-center space-y-4">
-                        <div class="text-green-600 font-bold flex items-center justify-center gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5"></i> 序號驗證成功
-                        </div>
-                        <p class="text-sm text-gray-500">請刮開下方銀漆區域</p>
-                        
-                        <div class="scratch-container">
-                            <div class="prize-layer">
-                                <h3 class="text-red-500 font-bold text-lg">恭喜獲得</h3>
-                                <p id="prize-text" class="text-xl font-black text-gray-800">...</p>
-                            </div>
-                            <canvas id="scratch-canvas"></canvas>
-                        </div>
-
-                        <div id="result-action" class="hidden mt-4">
-                            <p class="text-sm text-gray-500 mb-2">結果已記錄至系統</p>
-                            <button onclick="game.reset()" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900">
-                                再輸入一組
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ======================= 頁面 2: 後台登入 ======================= -->
-        <div id="page-login" class="page-section">
-            <div class="max-w-xs mx-auto mt-20 p-6 bg-white rounded-xl shadow-lg text-center">
-                <div class="mb-4 text-gray-400">
-                    <i data-lucide="lock" class="w-12 h-12 mx-auto"></i>
-                </div>
-                <h2 class="text-xl font-bold mb-4">後台管理登入</h2>
-                <input type="password" id="admin-password" placeholder="請輸入管理密碼" 
-                    class="w-full p-2 border rounded mb-3 text-center">
-                <button onclick="admin.login()" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-black">
-                    登入
-                </button>
-                <p id="login-error" class="text-red-500 text-xs mt-2 hidden">密碼錯誤</p>
-                <button onclick="app.showPage('game')" class="text-xs text-gray-400 mt-4 underline">返回遊戲</button>
-            </div>
-        </div>
-
-        <!-- ======================= 頁面 3: 後台管理面板 ======================= -->
-        <div id="page-admin" class="page-section">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold flex items-center gap-2">
-                    <i data-lucide="layout-dashboard"></i> 管理後台
-                </h2>
-                <button onclick="app.showPage('game')" class="text-sm text-blue-600 hover:underline">退出後台</button>
-            </div>
-
-            <!-- 設定區塊: Google Sheet 連線 -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-                <h3 class="font-bold text-blue-800 mb-2 flex items-center gap-2">
-                    <i data-lucide="database"></i> 資料庫連線設定
-                </h3>
-                <div class="text-sm text-blue-700 mb-2">
-                    若要串接真實 Google Sheet，請貼上 Google Apps Script 部署後的 Web App URL。
-                    <br>若欄位留空，系統將使用「本機模擬模式」進行演示。
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/..../exec" 
-                        class="flex-1 p-2 border rounded text-sm">
-                    <button onclick="admin.saveSettings()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
-                        儲存設定
-                    </button>
-                </div>
-                <p id="settings-msg" class="text-green-600 text-xs mt-1 hidden">設定已儲存</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- 庫存表 -->
-                <div class="bg-white rounded-lg shadow p-4 border border-gray-200">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <i data-lucide="package"></i> 獎項庫存監控
-                    </h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-600">
-                                <tr>
-                                    <th class="p-2">獎項名稱</th>
-                                    <th class="p-2 text-right">總數</th>
-                                    <th class="p-2 text-right">剩餘</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventory-table-body">
-                                <!-- JS 動態生成 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- 序號表 -->
-                <div class="bg-white rounded-lg shadow p-4 border border-gray-200">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <i data-lucide="qr-code"></i> 序號使用狀態
-                    </h3>
-                    <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-600 sticky top-0">
-                                <tr>
-                                    <th class="p-2">序號</th>
-                                    <th class="p-2">備註</th>
-                                    <th class="p-2 text-center">狀態</th>
-                                </tr>
-                            </thead>
-                            <tbody id="codes-table-body">
-                                <!-- JS 動態生成 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <!-- 手機版標題 -->
+    <div class="text-center mb-6 z-10">
+        <h1 class="text-3xl font-black text-white drop-shadow-md mb-1">🎄 聖誕刮刮樂</h1>
+        <p class="text-red-200 text-sm font-bold tracking-widest uppercase">Student Edition</p>
     </div>
 
-    <!-- 邏輯腳本 -->
+    <div class="mobile-card">
+        <!-- 頂部裝飾條 -->
+        <div class="h-2 w-full bg-gradient-to-r from-green-500 via-red-500 to-green-500"></div>
+        
+        <div class="p-6">
+            
+            <!-- 步驟 1: 輸入資料 -->
+            <div id="step-input" class="space-y-5">
+                <div class="input-group">
+                    <label>您的姓名</label>
+                    <input type="text" id="input-name" placeholder="請輸入名字">
+                </div>
+
+                <div class="input-group">
+                    <label>兌換序號</label>
+                    <input type="text" id="input-code" placeholder="CODE" class="uppercase">
+                </div>
+
+                <button onclick="game.verifyCode()" id="btn-verify"
+                    class="w-full bg-gradient-to-b from-green-600 to-green-800 text-white py-4 rounded-xl font-bold text-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 mt-4">
+                    <i data-lucide="gift"></i> 開始刮獎
+                </button>
+
+                <div id="msg-box" class="hidden p-3 rounded-lg text-center bg-red-100 text-red-600 font-bold text-sm animate-pulse border border-red-200">
+                    <span>錯誤訊息</span>
+                </div>
+            </div>
+
+            <!-- 步驟 2: 刮刮樂 -->
+            <div id="step-scratch" class="hidden space-y-4 text-center">
+                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-bold text-sm inline-flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> 驗證成功
+                </div>
+                
+                <div class="scratch-container">
+                    <div class="prize-layer">
+                        <i data-lucide="party-popper" class="w-10 h-10 text-red-500 mb-1"></i>
+                        <h3 class="text-red-500 font-bold text-sm">恭喜獲得</h3>
+                        <p id="prize-text" class="text-2xl font-black text-gray-800 leading-tight px-2">...</p>
+                    </div>
+                    <canvas id="scratch-canvas"></canvas>
+                </div>
+
+                <p class="text-gray-400 text-xs mt-2">請看前方大螢幕確認中獎名單！</p>
+            </div>
+
+        </div>
+    </div>
+
     <script>
-        // 初始化 Icons
         lucide.createIcons();
 
-        // ================= 模擬資料庫 (Mock DB) =================
-        // 如果沒有 GAS URL，就會使用這個資料
-        const MOCK_DB = {
-            codes: {
-                "VIP888": { used: false, label: "VIP 會員" },
-                "TEST001": { used: false, label: "測試 A" },
-                "TEST002": { used: false, label: "測試 B" },
-                "LUCKY2024": { used: false, label: "新年碼" },
-                "USED123": { used: true, label: "已過期範例" }
-            },
-            prizes: [
-                { id: 'p1', name: "頭獎：iPhone 15", total: 1, remaining: 1, weight: 0.05 },
-                { id: 'p2', name: "二獎：$1000 禮券", total: 5, remaining: 5, weight: 0.15 },
-                { id: 'p3', name: "三獎：熱美式咖啡", total: 20, remaining: 20, weight: 0.5 },
-                { id: 'p4', name: "銘謝惠顧", total: 9999, remaining: 9999, weight: 0.3 }
-            ]
-        };
-
-        // ================= 應用程式狀態管理 =================
-        const app = {
-            gasUrl: localStorage.getItem('scratch_gas_url') || '',
-            
-            init: () => {
-                // 初始化填入已儲存的 URL
-                document.getElementById('gas-url-input').value = app.gasUrl;
-                // 渲染後台資料
-                admin.render();
-            },
-
-            showPage: (pageId) => {
-                document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-                document.getElementById('page-' + pageId).classList.add('active');
-            },
-
-            showAdminLogin: () => {
-                app.showPage('login');
-                document.getElementById('login-error').classList.add('hidden');
-                document.getElementById('admin-password').value = '';
-            }
-        };
-
-        // ================= 刮刮卡邏輯 (Canvas) =================
-        const scratchPad = {
-            canvas: document.getElementById('scratch-canvas'),
-            ctx: null,
-            isDrawing: false,
-            width: 300,
-            height: 150,
-            
-            init: () => {
-                const canvas = scratchPad.canvas;
-                scratchPad.ctx = canvas.getContext('2d');
-                canvas.width = scratchPad.width;
-                canvas.height = scratchPad.height;
-                
-                // 重置狀態
-                canvas.classList.remove('fade-out');
-                scratchPad.ctx.globalCompositeOperation = 'source-over';
-                scratchPad.ctx.fillStyle = '#C0C0C0'; // 銀漆顏色
-                scratchPad.ctx.fillRect(0, 0, scratchPad.width, scratchPad.height);
-                
-                // 增加一些雜訊讓它像銀漆
-                for(let i=0; i<200; i++) {
-                    scratchPad.ctx.fillStyle = Math.random() > 0.5 ? '#a1a1a1' : '#e5e5e5';
-                    scratchPad.ctx.beginPath();
-                    scratchPad.ctx.arc(Math.random()*scratchPad.width, Math.random()*scratchPad.height, Math.random()*2, 0, Math.PI*2);
-                    scratchPad.ctx.fill();
-                }
-
-                // 畫文字
-                scratchPad.ctx.fillStyle = '#666';
-                scratchPad.ctx.font = 'bold 20px sans-serif';
-                scratchPad.ctx.textAlign = 'center';
-                scratchPad.ctx.fillText("刮開此處", scratchPad.width/2, scratchPad.height/2 + 8);
-
-                // 設定為擦除模式
-                scratchPad.ctx.globalCompositeOperation = 'destination-out';
-                
-                // 綁定事件
-                canvas.addEventListener('mousedown', scratchPad.start);
-                canvas.addEventListener('mousemove', scratchPad.move);
-                canvas.addEventListener('mouseup', scratchPad.end);
-                canvas.addEventListener('touchstart', scratchPad.start);
-                canvas.addEventListener('touchmove', scratchPad.move);
-                canvas.addEventListener('touchend', scratchPad.end);
-            },
-
-            getPos: (e) => {
-                const rect = scratchPad.canvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                return {
-                    x: (clientX - rect.left) * (scratchPad.width / rect.width),
-                    y: (clientY - rect.top) * (scratchPad.height / rect.height)
-                };
-            },
-
-            start: (e) => {
-                scratchPad.isDrawing = true;
-                scratchPad.move(e);
-            },
-
-            move: (e) => {
-                if (!scratchPad.isDrawing) return;
-                e.preventDefault();
-                const pos = scratchPad.getPos(e);
-                const ctx = scratchPad.ctx;
-                
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
-                ctx.fill();
-                
-                scratchPad.checkPercent();
-            },
-
-            end: () => {
-                scratchPad.isDrawing = false;
-            },
-
-            checkPercent: () => {
-                const imageData = scratchPad.ctx.getImageData(0, 0, scratchPad.width, scratchPad.height);
-                const pixels = imageData.data;
-                let transparent = 0;
-                for (let i = 3; i < pixels.length; i += 4) {
-                    if (pixels[i] === 0) transparent++;
-                }
-                const percent = (transparent / (pixels.length / 4)) * 100;
-                
-                if (percent > 40) { // 刮開超過 40% 自動全開
-                    scratchPad.canvas.classList.add('fade-out');
-                    document.getElementById('result-action').classList.remove('hidden');
-                    // 觸發後端確認 (如果是真實 API，這裡可能不需要做什麼，因為獎品在驗證時已經決定)
-                    // 但為了模擬體驗，我們在此時更新 UI 狀態
-                }
-            }
-        };
-
-        // ================= 遊戲主要邏輯 =================
         const game = {
-            currentCode: null,
-            currentPrize: null,
-
-            // 呼叫 API 或 模擬資料
             verifyCode: async () => {
-                const input = document.getElementById('input-code');
-                const code = input.value.trim().toUpperCase();
-                const errorMsg = document.getElementById('msg-error');
-                const btn = document.querySelector('button'); // 簡單選取
+                const name = document.getElementById('input-name').value.trim();
+                const code = document.getElementById('input-code').value.trim();
+                const btn = document.getElementById('btn-verify');
+                
+                if (!name || !code) return game.showError("請完整輸入姓名與序號");
 
-                if (!code) return;
-
-                // UI Loading
-                errorMsg.classList.add('hidden');
                 btn.disabled = true;
-                btn.textContent = '驗證中...';
+                btn.innerHTML = '<i class="animate-spin w-5 h-5"></i> 處理中...';
+                game.hideError();
 
-                // ============ 分支：真實 API vs 模擬 ============
-                if (app.gasUrl && app.gasUrl.startsWith('http')) {
-                    // 真實模式 (Fetch Google Apps Script)
+                if (TEACHER_GAS_URL) {
                     try {
-                        const response = await fetch(app.gasUrl, {
+                        const res = await fetch(TEACHER_GAS_URL, {
                             method: 'POST',
-                            mode: 'no-cors', // GAS Web App 跨域常見設定，注意：no-cors 會拿不到回傳值，需配合 JSONP 或 redirection
-                            // 若您的 GAS 設定正確 (return JSON)，可以用標準 CORS
-                            // 這裡為了演示簡單，我們假設使用者使用模擬模式為主。
-                            // 若要完整支援 GAS，建議 GAS 端 header 要設 Access-Control-Allow-Origin: *
-                            body: JSON.stringify({ action: 'verify', code: code })
+                            body: JSON.stringify({ action: 'verify', code: code, name: name })
                         });
-                        // 註：因為 GAS no-cors 限制，前端純靜態頁面很難直接拿到 return。
-                        // 為了這個演示檔案能跑，我們這裡若是真實 URL，僅做 console.log，實際邏輯還是跑模擬
-                        console.log("已發送請求至 GAS (演示模式下無法讀取跨域回應，將自動切換回模擬邏輯)");
-                        game.runSimulationLogic(code); 
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            game.showPrize(data.prize.name);
+                        } else {
+                            game.showError(data.message);
+                        }
                     } catch (e) {
-                        game.runSimulationLogic(code);
+                        game.showError("連線失敗，請檢查網路");
                     }
                 } else {
-                    // 模擬模式
-                    setTimeout(() => game.runSimulationLogic(code), 600);
+                    // 測試模式 (如果忘記填 URL)
+                    setTimeout(() => {
+                        if(code === 'VIP') game.showPrize("測試獎品：乖乖");
+                        else game.showError("測試模式：請填入 GAS URL");
+                    }, 800);
+                }
+                
+                if(!document.getElementById('step-scratch').classList.contains('hidden')){
+                    // 成功後不用恢復按鈕
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="gift"></i> 開始刮獎';
+                    lucide.createIcons();
                 }
             },
-
-            runSimulationLogic: (code) => {
-                const btn = document.querySelector('#step-input button');
-                btn.disabled = false;
-                btn.textContent = '驗證';
-                const errorMsg = document.getElementById('msg-error');
-
-                // 1. 檢查序號
-                const codeData = MOCK_DB.codes[code];
-                if (!codeData) {
-                    errorMsg.querySelector('span').innerText = "無效的兌換序號";
-                    errorMsg.classList.remove('hidden');
-                    return;
-                }
-                if (codeData.used) {
-                    errorMsg.querySelector('span').innerText = "此序號已被使用過";
-                    errorMsg.classList.remove('hidden');
-                    return;
-                }
-
-                // 2. 決定獎品 (扣庫存)
-                game.currentCode = code;
-                game.determinePrize();
-
-                // 3. 切換介面
+            showError: (msg) => {
+                const box = document.getElementById('msg-box');
+                box.classList.remove('hidden');
+                box.querySelector('span').innerText = msg;
+            },
+            hideError: () => document.getElementById('msg-box').classList.add('hidden'),
+            showPrize: (name) => {
                 document.getElementById('step-input').classList.add('hidden');
                 document.getElementById('step-scratch').classList.remove('hidden');
-                
-                // 4. 初始化刮刮卡
+                document.getElementById('prize-text').innerText = name;
                 scratchPad.init();
-            },
-
-            determinePrize: () => {
-                // 篩選有庫存的
-                const available = MOCK_DB.prizes.filter(p => p.remaining > 0);
-                // 權重隨機
-                let totalWeight = available.reduce((sum, item) => sum + item.weight, 0);
-                let random = Math.random() * totalWeight;
-                let selected = available[available.length - 1];
-                
-                for (let p of available) {
-                    if (random < p.weight) {
-                        selected = p;
-                        break;
-                    }
-                    random -= p.weight;
-                }
-
-                game.currentPrize = selected;
-                document.getElementById('prize-text').innerText = selected.name;
-
-                // 更新模擬資料庫 (標記已用 + 扣庫存)
-                MOCK_DB.codes[game.currentCode].used = true;
-                const dbPrize = MOCK_DB.prizes.find(p => p.id === selected.id);
-                if(dbPrize && dbPrize.remaining < 9999) {
-                    dbPrize.remaining--;
-                }
-                
-                // 更新後台顯示 (如果在後台的話)
-                admin.render();
-            },
-
-            reset: () => {
-                document.getElementById('input-code').value = '';
-                document.getElementById('step-scratch').classList.add('hidden');
-                document.getElementById('result-action').classList.add('hidden');
-                document.getElementById('step-input').classList.remove('hidden');
-                game.currentCode = null;
-                game.currentPrize = null;
             }
         };
 
-        // ================= 後台管理邏輯 =================
-        const admin = {
-            password: '38979816', // 您的密碼
+        const scratchPad = {
+            init: () => {
+                const c = document.getElementById('scratch-canvas');
+                const ctx = c.getContext('2d');
+                // 設定高解析度
+                const size = 500; 
+                c.width = size; c.height = size; 
+                
+                // 銀漆層
+                const g = ctx.createLinearGradient(0,0,size,size);
+                g.addColorStop(0,'#ddd'); g.addColorStop(1,'#999');
+                ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+                
+                // 文字
+                ctx.fillStyle = '#555'; ctx.font = 'bold 60px sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText("刮開", size/2, size/2);
 
-            login: () => {
-                const input = document.getElementById('admin-password').value;
-                if (input === admin.password) {
-                    app.showPage('admin');
-                    admin.render(); // 登入時刷新數據
-                } else {
-                    document.getElementById('login-error').classList.remove('hidden');
-                }
-            },
+                ctx.globalCompositeOperation = 'destination-out';
+                let drawing = false;
 
-            saveSettings: () => {
-                const url = document.getElementById('gas-url-input').value.trim();
-                app.gasUrl = url;
-                localStorage.setItem('scratch_gas_url', url);
-                const msg = document.getElementById('settings-msg');
-                msg.classList.remove('hidden');
-                setTimeout(() => msg.classList.add('hidden'), 2000);
-            },
-
-            render: () => {
-                // 渲染庫存表
-                const invBody = document.getElementById('inventory-table-body');
-                invBody.innerHTML = '';
-                MOCK_DB.prizes.forEach(p => {
-                    const row = `
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-2">${p.name}</td>
-                            <td class="p-2 text-right text-gray-400">${p.total}</td>
-                            <td class="p-2 text-right font-bold ${p.remaining < 3 ? 'text-red-500' : 'text-green-600'}">${p.remaining}</td>
-                        </tr>
-                    `;
-                    invBody.innerHTML += row;
-                });
-
-                // 渲染序號表
-                const codesBody = document.getElementById('codes-table-body');
-                codesBody.innerHTML = '';
-                Object.entries(MOCK_DB.codes).forEach(([code, data]) => {
-                    const statusHtml = data.used 
-                        ? `<span class="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">已兌換</span>`
-                        : `<span class="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">可使用</span>`;
-                    
-                    const row = `
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-2 font-mono font-bold">${code}</td>
-                            <td class="p-2 text-xs text-gray-500">${data.label}</td>
-                            <td class="p-2 text-center">${statusHtml}</td>
-                        </tr>
-                    `;
-                    codesBody.innerHTML += row;
-                });
+                const getPos = (e) => {
+                    const r = c.getBoundingClientRect();
+                    const t = e.touches?e.touches[0]:e;
+                    return { x: (t.clientX-r.left)*(size/r.width), y: (t.clientY-r.top)*(size/r.height) };
+                };
+                const draw = (e) => {
+                    if(!drawing) return; e.preventDefault();
+                    const p = getPos(e); ctx.beginPath(); ctx.arc(p.x, p.y, 40, 0, Math.PI*2); ctx.fill();
+                };
+                c.onmousedown=c.ontouchstart=(e)=>{drawing=true;draw(e);};
+                c.onmousemove=c.ontouchmove=draw;
+                c.onmouseup=c.ontouchend=()=>{drawing=false;};
             }
         };
-
-        // 啟動 App
-        app.init();
-
     </script>
 </body>
 </html>
