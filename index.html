@@ -6,11 +6,12 @@
     <title>聖誕幸運刮刮樂</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- 引入可愛圓潤字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <script>
         // ============================================================
-        // 【老師請注意】請將 GAS Web App URL 貼在下方
+        // 【設定區】請將 GAS Web App URL 貼在下方
         // ============================================================
         const TEACHER_GAS_URL = "https://script.google.com/macros/s/AKfycbwE7-R_EQSNbyNaZdpMRPC0LdaHunL1cMvJUjD9ZRnXdhfhp2Rx1gXpRRbYy0Jvei5x/exec"; 
         // ============================================================
@@ -18,69 +19,91 @@
 
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background: radial-gradient(circle at center, #8b0000 0%, #3f0000 100%);
-            overflow-x: hidden;
-            touch-action: manipulation;
+            font-family: 'Varela Round', 'Noto Sans TC', sans-serif;
+            /* Santa Tracker 風格：鮮豔藍色背景 */
+            background-color: #4285F4;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            padding: 1rem;
+            color: #333;
+            touch-action: manipulation;
         }
 
-        /* 手機版雪花 (數量稍微減少避免卡頓) */
-        .snowflake {
-            position: fixed;
-            top: -10px;
-            color: #fff;
-            opacity: 0.8;
-            font-size: 1.2em;
-            user-select: none;
-            z-index: 0;
-            animation: fall 8s linear infinite;
-            pointer-events: none;
-        }
-        @keyframes fall { to { transform: translateY(110vh); } }
-        .snowflake:nth-child(2n) { animation-duration: 7s; left: 20%; }
-        .snowflake:nth-child(3n) { animation-duration: 9s; left: 80%; }
-
-        /* 手機版卡片容器 */
-        .mobile-card {
-            width: 90%;
-            max-width: 400px; /* 限制最大寬度適應手機 */
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+        /* 主卡片容器 */
+        .game-card {
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
             overflow: hidden;
             position: relative;
-            z-index: 10;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
         }
 
-        /* 刮刮卡區域 - 強制正方形或適合手機的比例 */
-        .scratch-container {
+        /* 輸入框樣式 */
+        .custom-input {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            border-radius: 1rem;
+            border: 3px solid #E5E7EB;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #4B5563;
+            outline: none;
+            transition: all 0.2s;
+            background: #F9FAFB;
+        }
+        .custom-input:focus {
+            border-color: #34A853; /* Google Green */
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(52, 168, 83, 0.1);
+        }
+
+        /* 3D 按鈕樣式 */
+        .btn-3d {
+            transition: all 0.1s;
+            position: relative;
+            top: 0;
+        }
+        .btn-3d:active {
+            top: 4px; /* 按下時下沉 */
+            box-shadow: 0 0 0 !important; /* 陰影消失 */
+            border-bottom-width: 0px !important;
+            margin-top: 4px; /* 補償位移 */
+        }
+
+        /* 刮刮卡區域 */
+        .scratch-wrapper {
             position: relative;
             width: 100%;
-            aspect-ratio: 1/1; /* 手機上方形比較好刮 */
-            margin: 0 auto;
-            border-radius: 16px;
+            aspect-ratio: 1/1;
+            border-radius: 1.5rem;
             overflow: hidden;
-            border: 4px solid #d4af37;
-            user-select: none;
+            /* 金色邊框 */
+            border: 6px solid #FBC02D; 
+            background: white;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
         }
+
         .prize-layer {
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle, #fff 0%, #f0fdf4 100%);
+            background: radial-gradient(circle at center, #FFF9C4 0%, #FFF 70%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1;
-            padding: 10px;
+            padding: 1rem;
+            text-align: center;
         }
+
         canvas {
             position: absolute;
             inset: 0;
@@ -88,92 +111,112 @@
             touch-action: none;
             width: 100%;
             height: 100%;
+            cursor: pointer;
         }
 
-        .input-group label {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 4px;
-            display: block;
-            font-weight: bold;
+        /* 裝飾性彩帶 */
+        .ribbon {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 20px;
+            background: #EA4335;
+            border-radius: 10px;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .input-group input {
-            width: 100%;
-            padding: 16px; /* 加大觸控區 */
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            font-size: 1.2rem;
-            text-align: center;
-            font-weight: bold;
-            outline: none;
-            transition: all 0.3s;
+        .ribbon::before, .ribbon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 100%;
+            background: rgba(0,0,0,0.1);
         }
-        .input-group input:focus {
-            border-color: #22c55e;
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
-        }
+        .ribbon::before { left: 15%; }
+        .ribbon::after { right: 15%; }
     </style>
 </head>
 <body>
-    <!-- 雪花裝飾 -->
-    <div class="snowflake" style="left:10%">❄</div>
-    <div class="snowflake" style="left:30%">❅</div>
-    <div class="snowflake" style="left:70%">❆</div>
-    <div class="snowflake" style="left:90%">❄</div>
 
-    <!-- 手機版標題 -->
-    <div class="text-center mb-6 z-10">
-        <h1 class="text-3xl font-black text-white drop-shadow-md mb-1">🎄 聖誕刮刮樂</h1>
-        <p class="text-red-200 text-sm font-bold tracking-widest uppercase">Student Edition</p>
+    <!-- 標題區 -->
+    <div class="text-center mb-6 relative z-10">
+        <div class="inline-block bg-white/20 backdrop-blur-sm px-6 py-2 rounded-full border border-white/30 mb-3 shadow-sm">
+            <span class="text-white font-bold tracking-widest text-xs uppercase">Christmas Event 2024</span>
+        </div>
+        <h1 class="text-4xl font-black text-white drop-shadow-md tracking-wide">
+            聖誕刮刮樂
+        </h1>
     </div>
 
-    <div class="mobile-card">
-        <!-- 頂部裝飾條 -->
-        <div class="h-2 w-full bg-gradient-to-r from-green-500 via-red-500 to-green-500"></div>
+    <!-- 主卡片 -->
+    <div class="game-card p-6 md:p-8">
         
-        <div class="p-6">
-            
-            <!-- 步驟 1: 輸入資料 -->
-            <div id="step-input" class="space-y-5">
-                <div class="input-group">
-                    <label>您的姓名</label>
-                    <input type="text" id="input-name" placeholder="請輸入名字">
+        <!-- 步驟 1: 輸入資料 -->
+        <div id="step-input" class="space-y-6">
+            <div class="text-center mb-2">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 text-red-500">
+                    <i data-lucide="user" class="w-8 h-8"></i>
                 </div>
+                <h2 class="text-2xl font-bold text-gray-800">輸入資料</h2>
+                <p class="text-gray-400 text-sm font-bold">請輸入姓名與兌換碼</p>
+            </div>
 
-                <div class="input-group">
-                    <label>兌換序號</label>
-                    <input type="text" id="input-code" placeholder="CODE" class="uppercase">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-black text-gray-400 uppercase mb-1 ml-1">Name</label>
+                    <input type="text" id="input-name" placeholder="您的姓名" class="custom-input">
                 </div>
-
-                <button onclick="game.verifyCode()" id="btn-verify"
-                    class="w-full bg-gradient-to-b from-green-600 to-green-800 text-white py-4 rounded-xl font-bold text-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 mt-4">
-                    <i data-lucide="gift"></i> 開始刮獎
-                </button>
-
-                <div id="msg-box" class="hidden p-3 rounded-lg text-center bg-red-100 text-red-600 font-bold text-sm animate-pulse border border-red-200">
-                    <span>錯誤訊息</span>
+                <div>
+                    <label class="block text-xs font-black text-gray-400 uppercase mb-1 ml-1">Code</label>
+                    <input type="text" id="input-code" placeholder="兌換序號" class="custom-input uppercase tracking-widest">
                 </div>
             </div>
 
-            <!-- 步驟 2: 刮刮樂 -->
-            <div id="step-scratch" class="hidden space-y-4 text-center">
-                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-bold text-sm inline-flex items-center gap-1">
-                    <i data-lucide="check-circle" class="w-4 h-4"></i> 驗證成功
-                </div>
-                
-                <div class="scratch-container">
-                    <div class="prize-layer">
-                        <i data-lucide="party-popper" class="w-10 h-10 text-red-500 mb-1"></i>
-                        <h3 class="text-red-500 font-bold text-sm">恭喜獲得</h3>
-                        <p id="prize-text" class="text-2xl font-black text-gray-800 leading-tight px-2">...</p>
-                    </div>
-                    <canvas id="scratch-canvas"></canvas>
-                </div>
+            <button onclick="game.verifyCode()" id="btn-verify"
+                class="btn-3d w-full bg-[#34A853] hover:bg-[#2E9646] text-white py-4 rounded-xl font-bold text-xl border-b-4 border-[#1e7031] shadow-lg flex items-center justify-center gap-2 mt-4">
+                <i data-lucide="play-circle" class="w-6 h-6"></i>
+                開始刮獎
+            </button>
 
-                <p class="text-gray-400 text-xs mt-2">請看前方大螢幕確認中獎名單！</p>
+            <!-- 錯誤訊息 -->
+            <div id="msg-box" class="hidden p-4 rounded-xl bg-red-50 text-red-500 font-bold text-sm text-center border-2 border-red-100 flex items-center justify-center gap-2 animate-pulse">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <span>錯誤訊息</span>
             </div>
-
         </div>
+
+        <!-- 步驟 2: 刮刮樂 -->
+        <div id="step-scratch" class="hidden space-y-6 text-center">
+            <div class="bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold text-sm inline-flex items-center gap-2">
+                <i data-lucide="check" class="w-4 h-4 bg-green-500 text-white rounded-full p-0.5"></i>
+                序號驗證成功
+            </div>
+            
+            <div class="scratch-wrapper mx-auto">
+                <div class="ribbon"></div>
+                <div class="prize-layer">
+                    <div class="mb-2">
+                        <i data-lucide="gift" class="w-12 h-12 text-red-500 mx-auto"></i>
+                    </div>
+                    <h3 class="text-gray-400 font-bold text-sm uppercase tracking-wider mb-1">Congratulations</h3>
+                    <p id="prize-text" class="text-3xl font-black text-gray-800 leading-tight">...</p>
+                </div>
+                <canvas id="scratch-canvas"></canvas>
+            </div>
+
+            <p class="text-gray-400 text-xs font-bold bg-gray-50 p-3 rounded-lg">
+                請看前方大螢幕確認中獎名單！
+            </p>
+        </div>
+
+    </div>
+
+    <!-- 底部裝飾 -->
+    <div class="mt-8 text-white/40 text-xs font-bold tracking-widest uppercase">
+        Powered by Santa Claus
     </div>
 
     <script>
@@ -181,14 +224,17 @@
 
         const game = {
             verifyCode: async () => {
-                const name = document.getElementById('input-name').value.trim();
-                const code = document.getElementById('input-code').value.trim();
+                const nameInput = document.getElementById('input-name');
+                const codeInput = document.getElementById('input-code');
+                const name = nameInput.value.trim();
+                const code = codeInput.value.trim();
                 const btn = document.getElementById('btn-verify');
                 
-                if (!name || !code) return game.showError("請完整輸入姓名與序號");
+                if (!name) return game.shake(nameInput);
+                if (!code) return game.shake(codeInput);
 
                 btn.disabled = true;
-                btn.innerHTML = '<i class="animate-spin w-5 h-5"></i> 處理中...';
+                btn.innerHTML = '<i class="animate-spin w-5 h-5 mr-2 inline"></i> 連線中...';
                 game.hideError();
 
                 if (TEACHER_GAS_URL) {
@@ -204,23 +250,28 @@
                             game.showError(data.message);
                         }
                     } catch (e) {
-                        game.showError("連線失敗，請檢查網路");
+                        game.showError("連線失敗，請檢查網路狀況");
+                        console.error(e);
                     }
                 } else {
-                    // 測試模式 (如果忘記填 URL)
+                    // 防呆測試模式
                     setTimeout(() => {
                         if(code === 'VIP') game.showPrize("測試獎品：乖乖");
                         else game.showError("測試模式：請填入 GAS URL");
                     }, 800);
                 }
                 
-                if(!document.getElementById('step-scratch').classList.contains('hidden')){
-                    // 成功後不用恢復按鈕
-                } else {
+                // 如果沒有切換到刮刮頁面，恢復按鈕
+                if(document.getElementById('step-scratch').classList.contains('hidden')){
                     btn.disabled = false;
-                    btn.innerHTML = '<i data-lucide="gift"></i> 開始刮獎';
+                    btn.innerHTML = '<i data-lucide="play-circle" class="w-6 h-6"></i> 開始刮獎';
                     lucide.createIcons();
                 }
+            },
+            shake: (el) => {
+                el.classList.add('ring-4', 'ring-red-300', 'bg-red-50');
+                el.focus();
+                setTimeout(() => el.classList.remove('ring-4', 'ring-red-300', 'bg-red-50'), 500);
             },
             showError: (msg) => {
                 const box = document.getElementById('msg-box');
@@ -232,7 +283,9 @@
                 document.getElementById('step-input').classList.add('hidden');
                 document.getElementById('step-scratch').classList.remove('hidden');
                 document.getElementById('prize-text').innerText = name;
-                scratchPad.init();
+                
+                // 延遲一點點讓 DOM 渲染完再畫 Canvas
+                setTimeout(() => scratchPad.init(), 100);
             }
         };
 
@@ -240,20 +293,44 @@
             init: () => {
                 const c = document.getElementById('scratch-canvas');
                 const ctx = c.getContext('2d');
-                // 設定高解析度
-                const size = 500; 
-                c.width = size; c.height = size; 
+                // 使用高解析度
+                const size = 600; 
+                c.width = size; 
+                c.height = size; 
                 
-                // 銀漆層
+                // 繪製銀漆層 (帶點聖誕金屬質感)
                 const g = ctx.createLinearGradient(0,0,size,size);
-                g.addColorStop(0,'#ddd'); g.addColorStop(1,'#999');
-                ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+                g.addColorStop(0,'#E0E0E0'); 
+                g.addColorStop(0.3,'#F5F5F5');
+                g.addColorStop(0.5,'#C0C0C0');
+                g.addColorStop(1,'#9E9E9E');
+                ctx.fillStyle = g; 
+                ctx.fillRect(0,0,size,size);
                 
-                // 文字
-                ctx.fillStyle = '#555'; ctx.font = 'bold 60px sans-serif';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText("刮開", size/2, size/2);
+                // 增加雜訊紋理
+                for(let i=0; i<500; i++) {
+                    ctx.fillStyle = Math.random()>0.5 ? '#FFFFFF' : '#888888';
+                    ctx.globalAlpha = 0.2;
+                    ctx.beginPath();
+                    ctx.arc(Math.random()*size, Math.random()*size, Math.random()*3, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
 
+                // 提示文字
+                ctx.fillStyle = '#666'; 
+                ctx.font = 'bold 60px "Varela Round", sans-serif';
+                ctx.textAlign = 'center'; 
+                ctx.textBaseline = 'middle';
+                
+                // 文字陰影
+                ctx.shadowColor = "rgba(255,255,255,0.8)";
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                ctx.fillText("SCRATCH ME", size/2, size/2);
+                ctx.shadowColor = "transparent";
+
+                // 設定混合模式為擦除
                 ctx.globalCompositeOperation = 'destination-out';
                 let drawing = false;
 
@@ -263,8 +340,12 @@
                     return { x: (t.clientX-r.left)*(size/r.width), y: (t.clientY-r.top)*(size/r.height) };
                 };
                 const draw = (e) => {
-                    if(!drawing) return; e.preventDefault();
-                    const p = getPos(e); ctx.beginPath(); ctx.arc(p.x, p.y, 40, 0, Math.PI*2); ctx.fill();
+                    if(!drawing) return; 
+                    e.preventDefault(); // 防止手機滑動
+                    const p = getPos(e); 
+                    ctx.beginPath(); 
+                    ctx.arc(p.x, p.y, 45, 0, Math.PI*2); // 筆刷大小
+                    ctx.fill();
                 };
                 c.onmousedown=c.ontouchstart=(e)=>{drawing=true;draw(e);};
                 c.onmousemove=c.ontouchmove=draw;
