@@ -227,11 +227,22 @@
                 const nameInput = document.getElementById('input-name');
                 const codeInput = document.getElementById('input-code');
                 const name = nameInput.value.trim();
-                const code = codeInput.value.trim();
+                const code = codeInput.value.trim().toUpperCase(); // 強制轉大寫
                 const btn = document.getElementById('btn-verify');
                 
                 if (!name) return game.shake(nameInput);
                 if (!code) return game.shake(codeInput);
+
+                // ==========================================
+                // 1. 檢查快取 (LocalStorage)
+                // ==========================================
+                const cachedPrize = localStorage.getItem('scratch_record_' + code);
+                if (cachedPrize) {
+                    console.log("Found cached prize for " + code);
+                    // 找到了！直接顯示結果，不發送網路請求
+                    game.showPrize(cachedPrize);
+                    return;
+                }
 
                 btn.disabled = true;
                 btn.innerHTML = '<i class="animate-spin w-5 h-5 mr-2 inline"></i> 連線中...';
@@ -244,7 +255,12 @@
                             body: JSON.stringify({ action: 'verify', code: code, name: name })
                         });
                         const data = await res.json();
+                        
                         if (data.status === 'success') {
+                            // ==========================================
+                            // 2. 驗證成功，寫入快取
+                            // ==========================================
+                            localStorage.setItem('scratch_record_' + code, data.prize.name);
                             game.showPrize(data.prize.name);
                         } else {
                             game.showError(data.message);
@@ -256,12 +272,16 @@
                 } else {
                     // 防呆測試模式
                     setTimeout(() => {
-                        if(code === 'VIP') game.showPrize("測試獎品：乖乖");
+                        if(code === 'VIP') {
+                            const p = "測試獎品：乖乖";
+                            localStorage.setItem('scratch_record_' + code, p);
+                            game.showPrize(p);
+                        }
                         else game.showError("測試模式：請填入 GAS URL");
                     }, 800);
                 }
                 
-                // 如果沒有切換到刮刮頁面，恢復按鈕
+                // 如果沒有切換到刮刮頁面 (失敗狀態)，恢復按鈕
                 if(document.getElementById('step-scratch').classList.contains('hidden')){
                     btn.disabled = false;
                     btn.innerHTML = '<i data-lucide="play-circle" class="w-6 h-6"></i> 開始刮獎';
